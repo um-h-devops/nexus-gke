@@ -1,0 +1,16 @@
+---
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: {{ deployment_name }}-pvc
+  namespace: {{ deployment_namespace }}
+  labels:
+    app: {{ deployment_name }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ pvc_resources_requests | default('30Gi') }}
+

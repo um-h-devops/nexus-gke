@@ -1,0 +1,156 @@
+---
+
+kind: Namespace
+apiVersion: v1
+metadata:
+  name: nexus
+  labels:
+    name: nexus
+---
+
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: nexus-pvc
+  namespace: nexus
+  labels:
+    app: nexus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 30Gi---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nexus
+  namespace: nexus
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nexus
+  template:
+    metadata:
+      labels:
+        app: nexus
+    spec:
+      containers:
+      - name: nexus
+        image: sonatype/nexus3
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "4G"
+            cpu: "1000m"
+          limits:
+            memory: "10G"
+            cpu: "3920m"
+        ports:
+        - containerPort: 8081
+        - containerPort: 18080
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 6
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 6
+      volumes:
+        - name: nexus-data-volume
+          persistentVolumeClaim:
+            claimName: nexus-pvc
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: nexus-service
+  namespace: nexus
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 8081
+      protocol: TCP
+      name: http
+    - port: 18080
+      targetPort: 18080
+      protocol: TCP
+      name: docker 
+  selector:
+    app: nexus
+
+---
+
+apiVersion: networking.gke.io/v1beta1
+kind: ManagedCertificate
+metadata:
+  name: nexus-mq2020
+  namespace: nexus
+spec:
+  domains:
+    - "nexus.mq2020.us"
+
+---
+
+apiVersion: networking.gke.io/v1beta1
+kind: ManagedCertificate
+metadata:
+  name: nexus-docker-mq2020
+  namespace: nexus
+spec:
+  domains:
+    - "docker.mq2020.us"
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: nexus-ingress
+  namespace: nexus
+  annotations:
+    networking.gke.io/managed-certificates: "nexus-mq2020"
+    # gcloud compute addresses create hacks-with-rogues --global
+    kubernetes.io/ingress.global-static-ip-name: "hacks-with-rogues"
+    kubernetes.io/ingress.allow-http: "false"
+spec:
+  rules:
+  - host: nexus.mq2020.us
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: nexus-service
+          servicePort: 80
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: nexus-docker-ingress
+  namespace: nexus
+  annotations:
+    networking.gke.io/managed-certificates: "nexus-docker-mq2020"
+    # gcloud compute addresses create hacks-with-rogues-docker --global
+    kubernetes.io/ingress.global-static-ip-name: "hacks-with-rogues-docker"
+    kubernetes.io/ingress.allow-http: "false"
+spec:
+  rules:
+  - host: docker.mq2020.us
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: nexus-service
+          servicePort: 18080

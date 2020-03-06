@@ -1,0 +1,63 @@
+---
+- hosts: localhost
+  gather_facts: false
+  vars:
+    deployment_name: nexus
+    deployment_namespace: nexus
+    kubeconfig_context: 'gke_hacks-with-rogues-4741_us-central1-c_gke-nexus'
+  tasks:
+    - name: 'Assert required vars'
+      assert:
+        that:
+          - deployment_namespace is defined
+          - deployment_name is defined
+          - kubeconfig_context is defined
+      
+    - name: 'Ensure manifests directory exists'
+      file:
+        path: manifests
+        state: directory
+
+    - name: "Ensure {{ deployment_namespace }} Namespace is created"
+      k8s:
+        definition: "{{ lookup('template', 'templates/create-ns.yml.j2') }}"
+        context: "{{ kubeconfig_context }}"
+        state: present
+    
+    - name: "Ensure PersistentVolumeClaim is created"
+      k8s:
+        definition: "{{ lookup('template', 'templates/create-pvc.yml.j2') }}"
+        context: "{{ kubeconfig_context }}"
+        state: present
+    
+    - name: "Ensure {{ deployment_name }} Deployment is created"
+      k8s:
+        definition: "{{ lookup('template', 'templates/create-deploy.yml.j2') }}"
+        context: "{{ kubeconfig_context }}"
+        state: present
+        force: true
+
+    - name: "Ensure {{ deployment_name }} Networking is created"
+      k8s:
+        definition: "{{ lookup('template', 'templates/create-networking.yml.j2') }}"
+        context: "{{ kubeconfig_context }}"
+        state: present
+
+    - name: 'Template out for GitOps'
+      template:
+        src: "templates/create-{{ item }}.yml.j2"
+        dest: "manifests/{{ deployment_name }}-{{ item }}.yml"
+      loop:
+        - 'ns'
+        - 'pvc'
+        - 'deploy'
+        - 'networking'
+    
+    - name: 'Create combined manifest for ease-of-use'
+      shell: >
+        cat 
+        manifests/{{ deployment_name }}-ns.yml
+        manifests/{{ deployment_name }}-pvc.yml
+        manifests/{{ deployment_name }}-deploy.yml
+        manifests/{{ deployment_name }}-networking.yml
+        > manifests/{{ deployment_name }}.yml

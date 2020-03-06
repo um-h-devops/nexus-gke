@@ -1,0 +1,85 @@
+---
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ deployment_name }}-service
+  namespace: {{ deployment_namespace }}
+spec:
+  type: NodePort
+  ports:
+    - port: 80
+      targetPort: 8081
+      protocol: TCP
+      name: http
+    - port: 18080
+      targetPort: 18080
+      protocol: TCP
+      name: docker 
+  selector:
+    app: {{ deployment_name }}
+
+---
+
+apiVersion: networking.gke.io/v1beta1
+kind: ManagedCertificate
+metadata:
+  name: nexus-mq2020
+  namespace: {{ deployment_namespace }}
+spec:
+  domains:
+    - "nexus.mq2020.us"
+
+---
+
+apiVersion: networking.gke.io/v1beta1
+kind: ManagedCertificate
+metadata:
+  name: nexus-docker-mq2020
+  namespace: {{ deployment_namespace }}
+spec:
+  domains:
+    - "docker.mq2020.us"
+
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ deployment_name }}-ingress
+  namespace: {{ deployment_namespace }}
+  annotations:
+    networking.gke.io/managed-certificates: "nexus-mq2020"
+    # gcloud compute addresses create hacks-with-rogues --global
+    kubernetes.io/ingress.global-static-ip-name: "hacks-with-rogues"
+    kubernetes.io/ingress.allow-http: "false"
+spec:
+  rules:
+  - host: nexus.mq2020.us
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: {{ deployment_name }}-service
+          servicePort: 80
+---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ deployment_name }}-docker-ingress
+  namespace: {{ deployment_namespace }}
+  annotations:
+    networking.gke.io/managed-certificates: "nexus-docker-mq2020"
+    # gcloud compute addresses create hacks-with-rogues-docker --global
+    kubernetes.io/ingress.global-static-ip-name: "hacks-with-rogues-docker"
+    kubernetes.io/ingress.allow-http: "false"
+spec:
+  rules:
+  - host: docker.mq2020.us
+    http:
+      paths:
+      - path: /*
+        backend:
+          serviceName: {{ deployment_name }}-service
+          servicePort: 18080

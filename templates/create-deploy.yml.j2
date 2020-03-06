@@ -1,0 +1,50 @@
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ deployment_name }}
+  namespace: {{ deployment_namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ deployment_name }}
+  template:
+    metadata:
+      labels:
+        app: {{ deployment_name }}
+    spec:
+      containers:
+      - name: {{ deployment_name }}
+        image: sonatype/nexus3
+        imagePullPolicy: Always
+        resources:
+          requests:
+            memory: "4G"
+            cpu: "1000m"
+          limits:
+            memory: "10G"
+            cpu: "3920m"
+        ports:
+        - containerPort: 8081
+        - containerPort: 18080
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 6
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8081
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          failureThreshold: 6
+      volumes:
+        - name: {{ deployment_name }}-data-volume
+          persistentVolumeClaim:
+            claimName: {{ deployment_name }}-pvc
+
