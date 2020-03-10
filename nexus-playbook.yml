@@ -4,7 +4,7 @@
   vars:
     deployment_name: nexus
     deployment_namespace: nexus
-    kubeconfig_context: 'gke_hacks-with-rogues-4741_us-central1-c_gke-nexus'
+    kubeconfig_context: 'gke_hacks-with-rogues-4741_us-central1-c_nexus-gke'
   tasks:
     - name: 'Assert required vars'
       assert:

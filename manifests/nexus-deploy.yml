@@ -47,3 +47,4 @@ spec:
         - name: nexus-data-volume
           persistentVolumeClaim:
             claimName: nexus-pvc
+
