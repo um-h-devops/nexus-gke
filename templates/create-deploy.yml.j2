@@ -21,10 +21,10 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            memory: "4G"
+            memory: "1G"
             cpu: "1000m"
           limits:
-            memory: "10G"
+            memory: "4G"
             cpu: "3920m"
         ports:
         - containerPort: 8081
@@ -43,8 +43,21 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 30
           failureThreshold: 6
+      - name: httpd
+        image: httpd:2.4
+        imagePullPolicy: IfNotPresent
+        ports:
+          - containerPort: 80
+        volumeMounts:
+        - name: {{ deployment_name }}-httpd-conf-file
+          mountPath: /usr/local/apache2/conf/httpd.conf
+          subPath: httpd.conf
       volumes:
         - name: {{ deployment_name }}-data-volume
           persistentVolumeClaim:
             claimName: {{ deployment_name }}-pvc
+        - name: {{ deployment_name }}-httpd-conf-file
+          configMap:
+            name: {{ deployment_name }}-httpd-conf
+            defaultMode: 0644
 
