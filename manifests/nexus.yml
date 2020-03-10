@@ -46,10 +46,10 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            memory: "4G"
+            memory: "1G"
             cpu: "1000m"
           limits:
-            memory: "10G"
+            memory: "4G"
             cpu: "3920m"
         ports:
         - containerPort: 8081
@@ -84,7 +84,7 @@ spec:
   type: NodePort
   ports:
     - port: 80
-      targetPort: 8081
+      targetPort: 80
       protocol: TCP
       name: http
     - port: 18080
@@ -127,7 +127,7 @@ metadata:
     networking.gke.io/managed-certificates: "nexus-mq2020"
     # gcloud compute addresses create hacks-with-rogues --global
     kubernetes.io/ingress.global-static-ip-name: "hacks-with-rogues"
-    kubernetes.io/ingress.allow-http: "false"
+    # kubernetes.io/ingress.allow-http: "false"
 spec:
   rules:
   - host: nexus.mq2020.us

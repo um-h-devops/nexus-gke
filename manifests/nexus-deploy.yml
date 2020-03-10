@@ -21,10 +21,10 @@ spec:
         imagePullPolicy: Always
         resources:
           requests:
-            memory: "4G"
+            memory: "1G"
             cpu: "1000m"
           limits:
-            memory: "10G"
+            memory: "4G"
             cpu: "3920m"
         ports:
         - containerPort: 8081
@@ -43,8 +43,22 @@ spec:
           initialDelaySeconds: 30
           periodSeconds: 30
           failureThreshold: 6
+      - name: httpd
+        image: httpd:2.4
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: nexus-httpd-conf-file
+          mountPath: /usr/local/apache2/conf/httpd.conf
+          subPath: httpd.conf
+        command: ['/usr/local/apache2/bin/httpd']
+        args: ['-DFOREGROUND']
       volumes:
         - name: nexus-data-volume
           persistentVolumeClaim:
             claimName: nexus-pvc
-
+        - name: nexus-httpd-conf-file
+          configMap:
+            name: nexus-httpd-conf
+            defaultMode: 0644
